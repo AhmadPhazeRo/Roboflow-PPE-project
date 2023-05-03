@@ -1,16 +1,24 @@
-#from ultralytics import YOLO
-import pathlib
+# from ultralytics import YOLO
 
-#model_path = pathlib.Path(__file__).parent / "models" / "best.pt"
 
-#model = YOLO(model_path)
+# model_path = pathlib.Path(__file__).parent / "models" / "best.pt"
+
+# model = YOLO(model_path)
+
+########
+model_no = 2
+use_webcam = False
+video_link = "C:\\Users\\Ahmad\\Downloads\\Sample 2 smaller res.mp4"
+
+######
 
 import cv2
 import numpy as np
-
+import pathlib
 from roboflow import Roboflow
+
 rf = Roboflow(api_key="0I8SBTJUGecS1uO3wyrn")
-model_no = 2
+
 if model_no == 1:
     project = rf.workspace().project("construction-site-safety")
     model = project.version(27).model
@@ -21,8 +29,12 @@ else:
     project = rf.workspace().project("safety-helmet-dataset-uvh1t")
     model = project.version(1).model
 
-cap = cv2.VideoCapture(0)
-
+if use_webcam:
+    cap = cv2.VideoCapture(0)
+else:
+    cap = cv2.VideoCapture(video_link)
+    
+    
 while True:
     # Capture frame-by-frame
     ret, frame = cap.read()
@@ -31,22 +43,36 @@ while True:
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     # Perform inference on the video stream
-    result = model.predict(frame_rgb,confidence=40, overlap=30).json()
+    result = model.predict(frame_rgb, confidence=40, overlap=30).json()
 
-    predictions = result['predictions']
+    predictions = result["predictions"]
 
     # Draw bounding boxes and labels on the frame
     for pred in predictions:
-        x, y, width, height, confidence, label = pred['x'], pred['y'], pred['width'], pred['height'], pred['confidence'], pred['class']
+        x, y, width, height, confidence, label = (
+            pred["x"],
+            pred["y"],
+            pred["width"],
+            pred["height"],
+            pred["confidence"],
+            pred["class"],
+        )
         if confidence > 0.5:  # You can adjust the threshold
-            x1, y1 = int(x - width/2), int(y - height/2)
-            x2, y2 = int(x + width/2), int(y + height/2)
+            x1, y1 = int(x - width / 2), int(y - height / 2)
+            x2, y2 = int(x + width / 2), int(y + height / 2)
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.putText(frame, f"{label}: {confidence:.2f}", (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv2.putText(
+                frame,
+                f"{label}: {confidence:.2f}",
+                (x1, y1 - 5),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0, 255, 0),
+                2,
+            )
 
     # Display the resulting frame
     cv2.imshow("Frame", frame)
-    
 
     # Break the loop if 'q' key is pressed
     if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -66,6 +92,3 @@ cv2.destroyAllWindows()
 # print(model)
 # infer on an image hosted elsewhere
 # print(model.predict("URL_OF_YOUR_IMAGE", hosted=True, confidence=40, overlap=30).json())
-
-
-
